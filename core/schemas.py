@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Any, List
+from typing import List, Any
 
 class YouTubePayload(BaseModel):
     url: str
@@ -7,6 +7,12 @@ class YouTubePayload(BaseModel):
     video_quality: str
     audio_format: str
     summary_length: str
+
+class VideoPayload(BaseModel):
+    input_path: str
+    actions: List[str]
+    audio_format: str = "mp3"
+    summary_length: str = "short"
 
 class ExecutionResult(BaseModel):
     success: bool
