@@ -10,8 +10,14 @@ class YouTubePayload(BaseModel):
 
 class VideoPayload(BaseModel):
     input_path: str
-    actions: List[str]
+    actions: List[str]     # ['audio', 'summary']
     audio_format: str = "mp3"
+    summary_length: str = "short"
+
+class AudioPayload(BaseModel):
+    input_path: str
+    actions: List[str]     # ['convert', 'summary']
+    target_format: str = "mp3"
     summary_length: str = "short"
 
 class ExecutionResult(BaseModel):

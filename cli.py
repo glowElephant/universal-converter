@@ -49,6 +49,29 @@ def video(
     else:
         typer.secho(f"❌ Error: {result.outputs}", fg=typer.colors.RED)
 
+@app.command()
+def audio(
+    input_path: str = typer.Option(..., help="Path to local audio file"),
+    actions: list[str] = typer.Option(..., "--actions", help="Select one or more: convert, summary"),
+    target_format: str = typer.Option("mp3", help="Target audio format, e.g. mp3, wav, flac"),
+    summary_length: str = typer.Option("short", help="Summary length: short or detailed"),
+):
+    """로컬 오디오 파일의 포맷 변환 및 자동 요약을 수행"""
+    payload = {
+        "input_path": input_path,
+        "actions": actions,
+        "target_format": target_format,
+        "summary_length": summary_length,
+    }
+    result = run_plugin("audio", payload)
+    if result.success:
+        typer.echo("✅ Audio processing complete:")
+        for name, path in result.outputs.items():
+            typer.echo(f"  - {name}: {path}")
+    else:
+        typer.secho(f"❌ Error: {result.outputs}", fg=typer.colors.RED)
+
+
 def main():
     app()
 
