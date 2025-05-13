@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Any
+from typing import List, Any, Optional
 
 class YouTubePayload(BaseModel):
     url: str
@@ -19,6 +19,11 @@ class AudioPayload(BaseModel):
     actions: List[str]     # ['convert', 'summary']
     target_format: str = "mp3"
     summary_length: str = "short"
+
+class ImagePayload(BaseModel):
+    input_path: str
+    actions: List[str]     # ['ocr', 'to-pdf', 'to-docx', 'convert']
+    target_format: Optional[str] = None  # For format conversion
 
 class ExecutionResult(BaseModel):
     success: bool
