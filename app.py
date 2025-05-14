@@ -82,6 +82,7 @@ with tabs[1]:
     audio_format_v = st.selectbox("Audio Format", ["mp3", "wav"], key="afv")
     summary_length_v = st.selectbox("Summary Length", ["short", "detailed"], key="slv")
 
+        # 1) 실행 결과를 세션에 저장하도록 변경
     if st.button("Run Video") and video_file:
         payload = {
             "input_path": st.session_state.video_path,
@@ -91,15 +92,27 @@ with tabs[1]:
         }
         result = run_plugin("video", payload)
         if result.success:
-            for name, path in result.outputs.items():
-                if not path or not os.path.exists(path):
-                    st.warning(f"No file generated for '{name}'.")
-                    continue
-                file_name = os.path.basename(path)
-                with open(path, "rb") as f:
-                    st.download_button(f"Download {name}", data=f, file_name=file_name)
+            st.session_state.video_outputs = result.outputs
         else:
             st.error(f"Error: {result.outputs}")
+
+    # 2) 저장된 결과를 렌더링 (파일 vs 텍스트 구분)
+    if "video_outputs" in st.session_state:
+        outputs = st.session_state.video_outputs
+
+        # Summary 텍스트
+        if "summary" in outputs:
+            st.subheader("Summary")
+            st.text_area("", outputs["summary"], height=200)
+
+        # Audio / 기타 파일
+        if "audio" in outputs:
+            audio_path = outputs["audio"]
+            if os.path.exists(audio_path):
+                with open(audio_path, "rb") as f:
+                    st.download_button("Download audio", data=f, file_name=os.path.basename(audio_path))
+            else:
+                st.warning("No audio file generated.")
 
 # --- Audio 탭 ---
 with tabs[2]:
@@ -114,6 +127,7 @@ with tabs[2]:
     target_format_a = st.selectbox("Target Format", ["mp3", "wav", "flac"], key="tfa")
     summary_length_a = st.selectbox("Summary Length", ["short", "detailed"], key="sla")
 
+        # 1) Run Audio 를 누르면 결과를 세션에 저장
     if st.button("Run Audio") and audio_file:
         payload = {
             "input_path": st.session_state.audio_path,
@@ -123,15 +137,34 @@ with tabs[2]:
         }
         result = run_plugin("audio", payload)
         if result.success:
-            for name, path in result.outputs.items():
-                if not path or not os.path.exists(path):
-                    st.warning(f"No file generated for '{name}'.")
-                    continue
-                file_name = os.path.basename(path)
-                with open(path, "rb") as f:
-                    st.download_button(f"Download {name}", data=f, file_name=file_name)
+            st.session_state.audio_outputs = result.outputs
         else:
             st.error(f"Error: {result.outputs}")
+
+    # 2) 저장된 결과를 렌더링 (Summary → TextArea, 나머지 → Download Button)
+    if "audio_outputs" in st.session_state:
+        outputs = st.session_state.audio_outputs
+
+        # Summary 텍스트
+        if "summary" in outputs:
+            st.subheader("Summary")
+            st.text_area("", outputs["summary"], height=200)
+
+        # 변환된 오디오 파일 등 다운로드 버튼
+        for name, path in outputs.items():
+            if name == "summary":
+                continue
+
+            if path and os.path.exists(path):
+                with open(path, "rb") as f:
+                    st.download_button(
+                        f"Download {name}",
+                        data=f,
+                        file_name=os.path.basename(path),
+                        key=f"dl_audio_{name}"
+                    )
+            else:
+                st.warning(f"No file generated for '{name}'.")
 
 # --- Image 탭 ---
 with tabs[3]:
@@ -146,6 +179,7 @@ with tabs[3]:
     target_format_i = st.selectbox("Target Format", ["png", "jpeg", "webp"], key="tfi")
 
     if st.button("Run Image") and image_file:
+        # 1) 실행 후 결과를 세션에 저장
         payload = {
             "input_path": st.session_state.image_path,
             "actions": actions_i,
@@ -153,15 +187,39 @@ with tabs[3]:
         }
         result = run_plugin("image", payload)
         if result.success:
-            for name, path in result.outputs.items():
-                if not path or not os.path.exists(path):
-                    st.warning(f"No file generated for '{name}'.")
-                    continue
-                file_name = os.path.basename(path)
-                with open(path, "rb") as f:
-                    st.download_button(f"Download {name}", data=f, file_name=file_name)
+            st.session_state.image_outputs = result.outputs
         else:
             st.error(f"Error: {result.outputs}")
+
+        # 2) 저장된 결과 렌더링
+    if "image_outputs" in st.session_state:
+        outputs = st.session_state.image_outputs
+
+        # 2-1) OCR 결과(text) 출력 (plugin이 "text" 키를 쓰는 경우)
+        if "text" in outputs:
+            st.subheader("OCR Result")
+            st.text_area("", outputs["text"], height=200)
+        # 만약 plugin이 outputs["ocr"] 키를 쓴다면, 아래 주석을 해제하세요.
+        # elif "ocr" in outputs:
+        #     st.subheader("OCR Result")
+        #     st.text_area("", outputs["ocr"], height=200)
+
+        # 2-2) 나머지 파일들 다운로드 버튼
+        for name, path in outputs.items():
+            if name in ("text", "ocr"):
+                # 이미 텍스트로 처리했으니 건너뜁니다
+                continue
+
+            if path and os.path.exists(path):
+                with open(path, "rb") as f:
+                    st.download_button(
+                        f"Download {name}",
+                        data=f,
+                        file_name=os.path.basename(path),
+                        key=f"dl_image_{name}"
+                    )
+            else:
+                st.warning(f"No file generated for '{name}'.")
 
 # --- Text 탭 ---
 with tabs[4]:
@@ -179,6 +237,7 @@ with tabs[4]:
     tts_format_t = st.selectbox("TTS Format", ["mp3", "wav"], key="tft")
 
     if st.button("Run Text") and text_file:
+        # 1) 실행 후 결과를 세션에 저장
         payload = {
             "input_path": st.session_state.text_path,
             "actions": actions_t,
@@ -187,12 +246,30 @@ with tabs[4]:
         }
         result = run_plugin("text", payload)
         if result.success:
-            for name, path in result.outputs.items():
-                if not path or not os.path.exists(path):
-                    st.warning(f"No file generated for '{name}'.")
-                    continue
-                file_name = os.path.basename(path)
-                with open(path, "rb") as f:
-                    st.download_button(f"Download {name}", data=f, file_name=file_name)
+            st.session_state.text_outputs = result.outputs
         else:
             st.error(f"Error: {result.outputs}")
+
+        # 2) 저장된 결과 렌더링
+    if "text_outputs" in st.session_state:
+        outputs = st.session_state.text_outputs
+
+        # summary 키로 바뀌었으니 여기서 잡아줍니다
+        if "summary" in outputs:
+            st.subheader("Summary")
+            st.text_area("", outputs["summary"], height=200)
+
+        # 나머지(‘audio’, ‘pdf’, ‘image’) 파일 다운로드
+        for name, path in outputs.items():
+            if name == "summary":
+                continue
+            if path and os.path.exists(path):
+                with open(path, "rb") as f:
+                    st.download_button(
+                        f"Download {name}",
+                        data=f,
+                        file_name=os.path.basename(path),
+                        key=f"dl_text_{name}"
+                    )
+            else:
+                st.warning(f"No file generated for '{name}'.")

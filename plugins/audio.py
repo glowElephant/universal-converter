@@ -22,7 +22,7 @@ def audio_plugin(payload: dict) -> ExecutionResult:
 def convert_format(path: str, fmt: str) -> str:
     base, _ = os.path.splitext(path)
     out = f"{base}.{fmt}"
-    os.system(f'ffmpeg -i "{path}" "{out}"')
+    os.system(f'ffmpeg -y -i "{path}" "{out}"')
     return os.path.abspath(out)
 
 def transcribe_audio(path: str) -> str:
