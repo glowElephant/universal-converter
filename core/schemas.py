@@ -25,6 +25,12 @@ class ImagePayload(BaseModel):
     actions: List[str]     # ['ocr', 'to-pdf', 'to-docx', 'convert']
     target_format: Optional[str] = None  # For format conversion
 
+class TextPayload(BaseModel):
+    input_path: str
+    actions: List[str]     # ['summarize', 'tts', 'to-pdf', 'to-image']
+    summary_length: Optional[str] = "short"
+    tts_format: Optional[str] = "mp3"
+
 class ExecutionResult(BaseModel):
     success: bool
     outputs: Any
